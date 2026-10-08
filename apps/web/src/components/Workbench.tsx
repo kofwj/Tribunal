@@ -77,6 +77,10 @@ export function Workbench() {
               onClick={run}>
               {running ? (<><span className="spin" />检测中…</>) : "开始检测"}
             </button>
+            <button className="ghost" disabled={running || !text}
+              onClick={() => setText("")}>
+              清空
+            </button>
             {report && (
               <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
                 上次用时 {report.duration_ms} ms
