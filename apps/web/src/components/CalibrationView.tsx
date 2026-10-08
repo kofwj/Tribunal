@@ -84,11 +84,11 @@ export function CalibrationView() {
     }
   };
 
-  const doRun = async () => {
+  const doRun = async (ids: string[] | null = null) => {
     setBusy(true);
     setErr(null);
     try {
-      const r = await runCalibration(null, dataset);
+      const r = await runCalibration(ids, dataset);
       setLastRun(r.results);
       await refresh();
     } catch (e) {
@@ -116,7 +116,7 @@ export function CalibrationView() {
               </option>
             ))}
           </select>
-          <button className="primary" disabled={busy} onClick={doRun}>
+          <button className="primary" disabled={busy} onClick={() => void doRun()}>
             {busy ? (<><span className="spin" />校准中…</>)
                   : "重校准全部检测器"}
           </button>
@@ -148,69 +148,80 @@ export function CalibrationView() {
       <div className="panel">
         <h3>模型配置</h3>
         <p className="hint">
-          HF 分类器用的 HuggingFace 模型。换模型后建议重新校准。
+          换模型后建议重新校准对应检测器。
         </p>
-        <div className="kv">
-          <span className="k">HF 分类器模型</span>
-          <span className="v" style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
-            {hfModel || "—"}
-          </span>
+        {/* HF 分类器 */}
+        <div style={{ marginBottom: 14 }}>
+          <div className="label" style={{ marginBottom: 6 }}>HF 分类器</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select
+              value={HF_MODELS.some(m => m.id === modelInput) ? modelInput : "__custom"}
+              onChange={(e) => setModelInput(e.target.value === "__custom" ? "" : e.target.value)}
+              style={{ flex: 1, minWidth: 260 }}>
+              {HF_MODELS.map(m => (
+                <option key={m.id} value={m.id}>{m.label} — {m.id}</option>
+              ))}
+              <option value="__custom">自定义…</option>
+            </select>
+            {!HF_MODELS.some(m => m.id === modelInput) && (
+              <input
+                type="text" value={modelInput}
+                onChange={(e) => setModelInput(e.target.value)}
+                placeholder="HuggingFace 模型 ID"
+                style={{ flex: 1, minWidth: 200 }}
+              />
+            )}
+            <button className="ghost" style={{ padding: "6px 14px", fontSize: 12 }}
+              disabled={saving || !modelInput.trim() || modelInput.trim() === hfModel}
+              onClick={saveModel}>
+              {saving ? "保存中…" : "保存"}
+            </button>
+            <button className="ghost" style={{ padding: "6px 14px", fontSize: 12 }}
+              disabled={busy}
+              onClick={() => void doRun(["hf_classifier"])}>
+              校准此检测器
+            </button>
+          </div>
+          <div className="num" style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+            当前：{hfModel || "—"}
+          </div>
         </div>
-        <div className="kv" style={{ marginTop: 8 }}>
-          <span className="k">困惑度底模型</span>
-          <span className="v" style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
-            {pplModel || "Qwen/Qwen2.5-0.5B（默认）"}
-          </span>
+        {/* 困惑度 */}
+        <div>
+          <div className="label" style={{ marginBottom: 6 }}>困惑度检测底模型</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select
+              value={PPL_MODELS.some(m => m.id === pplInput) ? pplInput : "__custom"}
+              onChange={(e) => setPplInput(e.target.value === "__custom" ? "" : e.target.value)}
+              style={{ flex: 1, minWidth: 260 }}>
+              {PPL_MODELS.map(m => (
+                <option key={m.id} value={m.id}>{m.label} — {m.id}</option>
+              ))}
+              <option value="__custom">自定义…</option>
+            </select>
+            {!PPL_MODELS.some(m => m.id === pplInput) && (
+              <input
+                type="text" value={pplInput}
+                onChange={(e) => setPplInput(e.target.value)}
+                placeholder="HuggingFace 模型 ID"
+                style={{ flex: 1, minWidth: 200 }}
+              />
+            )}
+            <button className="ghost" style={{ padding: "6px 14px", fontSize: 12 }}
+              disabled={saving || !pplInput.trim() || pplInput.trim() === pplModel}
+              onClick={savePplModel}>
+              {saving ? "保存中…" : "保存"}
+            </button>
+            <button className="ghost" style={{ padding: "6px 14px", fontSize: 12 }}
+              disabled={busy}
+              onClick={() => void doRun(["lm_perplexity"])}>
+              校准此检测器
+            </button>
+          </div>
+          <div className="num" style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+            当前：{pplModel || "Qwen/Qwen2.5-0.5B（默认）"}
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <select
-            value={HF_MODELS.some(m => m.id === modelInput) ? modelInput : "__custom"}
-            onChange={(e) => setModelInput(e.target.value === "__custom" ? "" : e.target.value)}
-            style={{ minWidth: 280 }}>
-            {HF_MODELS.map(m => (
-              <option key={m.id} value={m.id}>{m.label} — {m.id}</option>
-            ))}
-            <option value="__custom">自定义…</option>
-          </select>
-          {!HF_MODELS.some(m => m.id === modelInput) && (
-            <input
-              type="text" value={modelInput}
-              onChange={(e) => setModelInput(e.target.value)}
-              placeholder="HuggingFace 模型 ID"
-              style={{ flex: 1, minWidth: 200 }}
-            />
-          )}
-          <button className="primary" disabled={saving || !modelInput.trim() || modelInput.trim() === hfModel}
-            onClick={saveModel}>
-            {saving ? "保存中…" : "保存"}
-          </button>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <select
-            value={PPL_MODELS.some(m => m.id === pplInput) ? pplInput : "__custom"}
-            onChange={(e) => setPplInput(e.target.value === "__custom" ? "" : e.target.value)}
-            style={{ minWidth: 280 }}>
-            {PPL_MODELS.map(m => (
-              <option key={m.id} value={m.id}>{m.label} — {m.id}</option>
-            ))}
-            <option value="__custom">自定义…</option>
-          </select>
-          {!PPL_MODELS.some(m => m.id === pplInput) && (
-            <input
-              type="text" value={pplInput}
-              onChange={(e) => setPplInput(e.target.value)}
-              placeholder="HuggingFace 模型 ID"
-              style={{ flex: 1, minWidth: 200 }}
-            />
-          )}
-          <button className="primary" disabled={saving || !pplInput.trim() || pplInput.trim() === pplModel}
-            onClick={savePplModel}>
-            {saving ? "保存中…" : "保存"}
-          </button>
-        </div>
-        <p className="hint" style={{ marginTop: 8 }}>
-          换底模型后建议重新校准困惑度检测器。
-        </p>
       </div>
 
       <div className="panel">
