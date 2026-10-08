@@ -29,8 +29,8 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <div className="logo">J</div>
-          <div className="brand-name">AI文本陪审团</div>
+          <div className="logo">审</div>
+          <div className="brand-name">三堂会审 <span style={{ fontWeight: 400, fontSize: 12, color: "var(--text-faint)", marginLeft: 4 }}>Tribunal</span></div>
         </div>
         <nav className="tabs">
           {([["workbench", "检测"], ["history", "历史"],
@@ -63,7 +63,12 @@ export default function App() {
         textAlign: "center", padding: "16px", fontSize: 11.5,
         color: "var(--text-faint)", borderTop: "1px solid var(--border-soft)",
       }}>
-        AITextJury v0.1.0 · MIT 开源 · 检测器是证据引擎，不是法官——改写过的文本可以骗过任何已知方法。
+        三堂会审 Tribunal v1.0.0 ·{" "}
+        <a href="https://github.com/kofwj/aitextjury-zh" target="_blank" rel="noreferrer"
+          style={{ color: "var(--text-faint)", textDecoration: "underline" }}>
+          GitHub
+        </a>{" "}
+        · MIT 开源 · 检测器是证据引擎，不是法官——改写过的文本可以骗过任何已知方法。
       </footer>
     </div>
   );
