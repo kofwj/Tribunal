@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deleteHistoryReport, fetchHistory, fetchHistoryReport } from "../api";
 import type { AnalyzeReport, HistoryEntry } from "../types";
 import { Heatmap } from "./Heatmap";
@@ -13,6 +13,7 @@ export function HistoryView({ onOpen }:
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [report, setReport] = useState<AnalyzeReport | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const refresh = async () => {
     try {
@@ -29,6 +30,7 @@ export function HistoryView({ onOpen }:
     try {
       const rep = await fetchHistoryReport(id);
       setReport(rep);
+      setTimeout(() => reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (e) {
       setErr(String(e));
     }
@@ -92,7 +94,7 @@ export function HistoryView({ onOpen }:
       </div>
 
       {report && (
-        <>
+        <div ref={reportRef} style={{ scrollMarginTop: 12 }}>
           <div className="panel">
             <h3>报告 {report.id} · {report.created_at}</h3>
             {onOpen && (
@@ -110,7 +112,7 @@ export function HistoryView({ onOpen }:
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
