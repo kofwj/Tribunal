@@ -6,11 +6,13 @@ import { fmtPct, detectorName } from "../util";
 const HF_MODELS = [
   { id: "yuchuantian/AIGC_detector_zhv3", label: "中文 v3（推荐）" },
   { id: "yuchuantian/AIGC_detector_zhv2", label: "中文 v2" },
-  { id: "Hello-SimpleAI/chatgpt-detector-roberta-chinese", label: "旧版中文" },
+  { id: "Hello-SimpleAI/chatgpt-detector-roberta-chinese", label: "旧版中文 RoBERTa" },
+  { id: "yuchuantian/AIGC_detector_env2", label: "英文 v2" },
 ];
 
 const PPL_MODELS = [
   { id: "Qwen/Qwen2.5-0.5B", label: "Qwen2.5 0.5B（默认）" },
+  { id: "Qwen/Qwen2.5-1.5B", label: "Qwen2.5 1.5B（更准，更慢）" },
   { id: "Qwen/Qwen2-0.5B", label: "Qwen2 0.5B" },
   { id: "openai-community/gpt2", label: "GPT-2（英文原版）" },
 ];
