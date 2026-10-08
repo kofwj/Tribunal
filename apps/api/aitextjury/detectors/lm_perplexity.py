@@ -28,7 +28,7 @@ from .lm_common import (HUB, aggregate_to_sentences, build_chunks, \
 
 CHUNK_TOKENS = 512
 OVERLAP = 128
-DEFAULT_MODEL = "gpt2"
+DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B"  # Chinese small LM for perplexity
 
 
 class LMPerplexityDetector(BaseDetector):

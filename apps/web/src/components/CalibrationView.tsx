@@ -9,6 +9,12 @@ const HF_MODELS = [
   { id: "Hello-SimpleAI/chatgpt-detector-roberta-chinese", label: "旧版中文" },
 ];
 
+const PPL_MODELS = [
+  { id: "Qwen/Qwen2.5-0.5B", label: "Qwen2.5 0.5B（默认）" },
+  { id: "Qwen/Qwen2-0.5B", label: "Qwen2 0.5B" },
+  { id: "openai-community/gpt2", label: "GPT-2（英文原版）" },
+];
+
 /**
  * 校准页 —— 诚实度引擎。
  * 每个检测器：拟合状态、数据集、AUC、准确率、ECE、Brier、阈值；
@@ -23,6 +29,8 @@ export function CalibrationView() {
   const [err, setErr] = useState<string | null>(null);
   const [hfModel, setHfModel] = useState("");
   const [modelInput, setModelInput] = useState("");
+  const [pplModel, setPplModel] = useState("");
+  const [pplInput, setPplInput] = useState("");
   const [saving, setSaving] = useState(false);
 
   const refresh = async () => {
@@ -35,6 +43,8 @@ export function CalibrationView() {
         const { settings } = await fetchSettings();
         const m = (settings as any)?.detectors?.hf_classifier?.model;
         if (m) { setHfModel(m); setModelInput(m); }
+        const pm = (settings as any)?.detectors?.lm_perplexity?.model;
+        if (pm) { setPplModel(pm); setPplInput(pm); }
       } catch { /* ignore */ }
       if (datasets.length && !datasets.some((d) => d.name === dataset)) {
         setDataset(datasets[0].name);
@@ -53,6 +63,20 @@ export function CalibrationView() {
     try {
       await saveSettings({ detectors: { hf_classifier: { model: id } } } as any);
       setHfModel(id);
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePplModel = async () => {
+    const id = pplInput.trim();
+    if (!id || id === pplModel) return;
+    setSaving(true);
+    try {
+      await saveSettings({ detectors: { lm_perplexity: { model: id } } } as any);
+      setPplModel(id);
     } catch (e) {
       setErr(String(e));
     } finally {
@@ -132,6 +156,12 @@ export function CalibrationView() {
             {hfModel || "—"}
           </span>
         </div>
+        <div className="kv" style={{ marginTop: 8 }}>
+          <span className="k">困惑度底模型</span>
+          <span className="v" style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
+            {pplModel || "Qwen/Qwen2.5-0.5B（默认）"}
+          </span>
+        </div>
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
           <select
             value={HF_MODELS.some(m => m.id === modelInput) ? modelInput : "__custom"}
@@ -155,6 +185,32 @@ export function CalibrationView() {
             {saving ? "保存中…" : "保存"}
           </button>
         </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <select
+            value={PPL_MODELS.some(m => m.id === pplInput) ? pplInput : "__custom"}
+            onChange={(e) => setPplInput(e.target.value === "__custom" ? "" : e.target.value)}
+            style={{ minWidth: 280 }}>
+            {PPL_MODELS.map(m => (
+              <option key={m.id} value={m.id}>{m.label} — {m.id}</option>
+            ))}
+            <option value="__custom">自定义…</option>
+          </select>
+          {!PPL_MODELS.some(m => m.id === pplInput) && (
+            <input
+              type="text" value={pplInput}
+              onChange={(e) => setPplInput(e.target.value)}
+              placeholder="HuggingFace 模型 ID"
+              style={{ flex: 1, minWidth: 200 }}
+            />
+          )}
+          <button className="primary" disabled={saving || !pplInput.trim() || pplInput.trim() === pplModel}
+            onClick={savePplModel}>
+            {saving ? "保存中…" : "保存"}
+          </button>
+        </div>
+        <p className="hint" style={{ marginTop: 8 }}>
+          换底模型后建议重新校准困惑度检测器。
+        </p>
       </div>
 
       <div className="panel">
