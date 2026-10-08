@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { AnalyzeReport, DetectorResult, SegmentScore } from "../types";
 import { scoreColor, isDarkUI, detectorName } from "../util";
 
@@ -11,6 +11,17 @@ import { scoreColor, isDarkUI, detectorName } from "../util";
 export function Heatmap({ report }:{ report: AnalyzeReport }) {
   const [layer, setLayer] = useState<string>("consensus");
   const [hover, setHover] = useState<{ x: number; y: number; segId: string } | null>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  // tooltip 贴边翻转：下方空间不够时显示在鼠标上方
+  const tipPos = (h: { x: number; y: number }) => {
+    const el = tipRef.current;
+    const estH = el ? el.offsetHeight : 220;
+    const flip = h.y + estH + 16 > window.innerHeight;
+    return {
+      left: Math.min(h.x, window.innerWidth - 340),
+      top: flip ? Math.max(8, h.y - estH - 12) : h.y,
+    } as React.CSSProperties;
+  };
 
   const layers = useMemo(() => {
     const out: { id: string; name: string; scores: Map<string, number> }[] = [];
@@ -123,7 +134,7 @@ export function Heatmap({ report }:{ report: AnalyzeReport }) {
       </div>
 
       {hover && (
-        <div className="seg-tip" style={{ left: hover.x, top: hover.y }}>
+        <div className="seg-tip" ref={tipRef} style={tipPos(hover)}>
           <div style={{ color: "var(--text-dim)", marginBottom: 6, fontSize: 11 }}>
             句子分数 · {hoverSegText(report, hover.segId)}
           </div>
@@ -155,7 +166,10 @@ function tooltipExtras(report: AnalyzeReport, segId: string) {
     for (const s of r.segment_scores) {
       if (s.id === segId && s.extras) {
         const reason = s.extras["reason"];
-        if (typeof reason === "string" && reason) reasons.push(`${detectorName(r.detector_id, r.name)}：${reason}`);
+        if (typeof reason === "string" && reason) {
+          const short = reason.length > 120 ? reason.slice(0, 120) + "…" : reason;
+          reasons.push(`${detectorName(r.detector_id, r.name)}：${short}`);
+        }
       }
     }
   }
