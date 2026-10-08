@@ -1,105 +1,68 @@
-import { useState } from "react";
 import type { DetectorResult } from "../types";
-import { familyLabel, fmtPct, detectorName } from "../util";
-import { Gauge } from "./Gauge";
+import { detectorName, VERDICT_LABEL, verdictClass } from "../util";
 
-/** 单个检测器的卡片：仪表盘、信号、证据列表、来源 */
-export function DetectorCard({ result }:{ result: DetectorResult }) {
-  const [open, setOpen] = useState(false);
-  const calib = result.calibration;
-  const hasSignals = Object.keys(result.signals).length > 0;
-
+/**
+ * v3 检测器卡片：左侧色条表判定、大字分数、计量条、关键证据、复制按钮。
+ */
+export function DetectorCard({ result }: { result: DetectorResult }) {
   if (result.error) {
     return (
-      <div className="det-card">
-        <div className="head">
-          <span className="nm">{detectorName(result.detector_id, result.name)}</span>
-          <span className="chip">出错</span>
+      <div className="det-card-v3">
+        <div className="det-card-head">
+          <span className="name">{detectorName(result.detector_id, result.name)}</span>
+          <span className="verdict-tag" style={{ background: "var(--surface-3)", color: "var(--text-faint)" }}>出错</span>
         </div>
-        <div style={{ color: "var(--warn)", fontSize: 12.5 }}>
-          {result.error}
-        </div>
+        <div style={{ color: "var(--warn)", fontSize: 12.5 }}>{result.error}</div>
       </div>
     );
   }
 
+  const vc = verdictClass(result.verdict); // ai | human | mixed
+  const label = (result.verdict ? VERDICT_LABEL[result.verdict] : null) ?? result.verdict ?? "—";
+  const score = result.score ?? 0;
+  const pct = Math.round(score * 100);
+
+  // 关键证据：取前 3 个最有信息量的 signal
+  const signals = Object.entries(result.signals)
+    .filter(([, v]) => v != null && v !== "")
+    .slice(0, 3);
+
+  const copyOne = () => {
+    const lines = [
+      `${detectorName(result.detector_id, result.name)} — ${score.toFixed(2)}（${label}）`,
+      `阈值 ${result.threshold.toFixed(2)} · ${result.calibration.status === "calibrated" ? `已校准（AUC ${result.calibration.auc?.toFixed(2) ?? "—"}）` : "未校准"} · ${result.runtime_ms} ms`,
+    ];
+    if (result.model) lines.push(`模型：${result.model}`);
+    for (const [k, v] of signals) lines.push(`${k}：${typeof v === "number" ? v.toFixed(3) : String(v)}`);
+    navigator.clipboard.writeText(lines.join("\n")).catch(() => {});
+  };
+
   return (
-    <div className="det-card">
-      <div className="head">
-        <span className="nm">{detectorName(result.detector_id, result.name)}</span>
-        <span className="chip">{familyLabel(result.family)}</span>
-        <span className="model">{result.model ?? ""}</span>
+    <div className={`det-card-v3 ${vc}`}>
+      <div className="det-card-head">
+        <span className="name">{detectorName(result.detector_id, result.name)}</span>
+        <button className="copy-btn" onClick={copyOne} title="复制此检测器结果">📋</button>
+        <span className={`verdict-tag ${vc}`}>{label}</span>
       </div>
-
-      <div className="det-mid">
-        <Gauge score={result.score} verdict={result.verdict}
-          confidence={result.confidence} threshold={result.threshold} />
-        <div className="numbers" style={{ flex: 1 }}>
-          <div>
-            原始分 <b style={{ color: "var(--text)" }}>
-              {result.raw_score?.toFixed(3) ?? "—"}
-            </b>{" "}
-            <span style={{ color: "var(--text-faint)" }}>
-              ({result.raw_direction === "lower_is_ai" ? "越低越像 AI" : "越高越像 AI"})
-            </span>
-          </div>
-          <div>
-            阈值 <b style={{ color: "var(--text)" }}>
-              {result.threshold.toFixed(2)}
-            </b>
-            {" · "}
-            <span className={
-              calib.status === "calibrated" ? "chip accent" : "chip warn"}>
-              {calib.status === "calibrated"
-                ? `已校准（n=${calib.n_samples}，${
-                    calib.auc != null ? `AUC ${calib.auc.toFixed(2)}` : "—"})`
-                : "未校准 — 默认阈值"}
-            </span>
-          </div>
-          <div>{result.runtime_ms} ms · {result.segment_scores.length} 个句子已评分</div>
-          {result.link && (
-            <div>
-              <a href={result.link} target="_blank" rel="noreferrer">方法说明 ↗</a>
-            </div>
+      <div className="score-row">
+        <span className={`score-big ${vc}`}>{score.toFixed(2)}</span>
+        <span className="score-label">AI 概率 · 阈值 {result.threshold.toFixed(2)}</span>
+      </div>
+      <div className="meter">
+        <div className={`meter-fill ${vc}`} style={{ width: `${pct}%` }} />
+      </div>
+      {(signals.length > 0 || result.model) && (
+        <div className="evidence">
+          {result.model && <div><span className="k">模型：</span>{result.model}</div>}
+          {result.calibration.status === "calibrated" && (
+            <div><span className="k">校准：</span>{result.calibration.dataset ?? ""} · 准确率 {result.calibration.accuracy != null ? `${Math.round(result.calibration.accuracy * 100)}%` : "—"}</div>
           )}
-        </div>
-      </div>
-
-      {hasSignals && (
-        <details open={!result.evidence.length}>
-          <summary style={{ cursor: "pointer", color: "var(--text-faint)", fontSize: 12.5 }}>
-            信号详情
-          </summary>
-          <div className="kv-grid" style={{
-            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-            gap: 2, fontSize: 11.5, fontFamily: "var(--mono)", color: "var(--text-dim)",
-          }}>
-            {Object.entries(result.signals).map(([k, v]) => (
-              <div key={k} title={k}>
-                {k} = {typeof v === "number" && Number.isFinite(v) && Math.abs(v) > 0 && Math.abs(v) < 1e6
-                  ? v.toFixed(3) : String(v)}
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
-
-      {result.evidence.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {result.evidence.slice(0, open ? 99 : 3).map((e, i) => (
-            <div key={i} className={`ev-item sev-${e.severity}`}>
-              <div className="t">{e.title}</div>
-              <div className="d">{e.detail}</div>
-            </div>
+          {signals.map(([k, v]) => (
+            <div key={k}><span className="k">{k}：</span>{typeof v === "number" && Number.isFinite(v) ? v.toFixed(3) : String(v)}</div>
           ))}
-          {result.evidence.length > 3 && (
-            <button className="ghost" style={{ alignSelf: "flex-start", padding: "4px 10px" }}
-              onClick={() => setOpen(!open)}>
-              {open ? "收起" : `再看 ${result.evidence.length - 3} 条`}
-            </button>
-          )}
         </div>
       )}
+      <div className="timing">{result.runtime_ms} ms · {result.segment_scores.length} 句已评分</div>
     </div>
   );
 }
