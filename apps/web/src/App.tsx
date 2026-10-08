@@ -10,8 +10,6 @@ type Tab = "workbench" | "history" | "calibration" | "providers" | "methods";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("workbench");
-  // index.html sets data-theme pre-mount (localStorage -> OS preference);
-  // React adopts that and flips it when toggled.
   const [theme, setTheme] = useState(
     document.documentElement.dataset.theme === "light" ? "light" : "dark",
   );
@@ -30,35 +28,30 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="logo">
-          <span className="name">AI<em>文本</em>陪审团</span>
-          <span className="tag">
-            多检测器会审 · 看证据不看单一分数 · 自带 Key
-          </span>
+        <div className="brand">
+          <div className="logo">J</div>
+          <div className="brand-name">AI文本陪审团</div>
         </div>
         <nav className="tabs">
           {([["workbench", "检测"], ["history", "历史"],
             ["calibration", "校准"], ["providers", "模型接入"],
             ["methods", "原理"]] as [Tab, string][]).map(([id, label]) => (
-            <button key={id} className={tab === id ? "active" : ""}
+            <button key={id} className={`tab${tab === id ? " on" : ""}`}
               onClick={() => setTab(id)}>
               {label}
             </button>
           ))}
         </nav>
-        <button className="ghost theme-toggle"
-          title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
-          onClick={toggleTheme}>
-          {theme === "dark" ? "☀ 浅色" : "☾ 深色"}
-        </button>
+        <div className="topbar-right">
+          <button className="ghost" style={{ padding: "6px 12px", fontSize: 12 }}
+            title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
+            onClick={toggleTheme}>
+            {theme === "dark" ? "☀ 浅色" : "☾ 深色"}
+          </button>
+        </div>
       </header>
 
-      <div className="masthead">
-        <b>多检测器共识</b> · 句子级热力图 · 困惑度与曲率信号 · 校准（AUC/ECE) · 插件 API —{" "}
-        <span>无需账号，无遥测，密钥只留在本机</span>
-      </div>
-
-      <main className="page">
+      <main className="main">
         {tab === "workbench" && <Workbench />}
         {tab === "history" && <HistoryView />}
         {tab === "calibration" && <CalibrationView />}
@@ -66,7 +59,10 @@ export default function App() {
         {tab === "methods" && <DocsView />}
       </main>
 
-      <footer className="pagefoot">
+      <footer style={{
+        textAlign: "center", padding: "16px", fontSize: 11.5,
+        color: "var(--text-faint)", borderTop: "1px solid var(--border-soft)",
+      }}>
         AITextJury v0.1.0 · MIT 开源 · 检测器是证据引擎，不是法官——改写过的文本可以骗过任何已知方法。
       </footer>
     </div>
