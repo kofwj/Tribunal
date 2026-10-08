@@ -92,6 +92,17 @@ export const testProvider = (id: string) =>
 export const previewModels = (draft: { kind: string; base_url: string; api_key: string; provider_id?: string }) =>
   sendJSON<{ models: string[] }>("POST", "/keys/models/preview", draft);
 
+export const extractText = async (file: File): Promise<{ filename: string; chars: number; text: string }> => {
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch("/api/extract", { method: "POST", body: fd });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(t || `上传失败 (${r.status})`);
+  }
+  return r.json();
+};
+
 export const saveSettings = (settings: Partial<Settings>) =>
   sendJSON<{ settings: Settings }>("PUT", "/settings", settings);
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnalyzeReport, DetectorInfo } from "../types";
-import { analyze, fetchDetectors } from "../api";
+import { analyze, extractText, fetchDetectors } from "../api";
 import { Heatmap } from "./Heatmap";
 import { DetectorCard } from "./DetectorCard";
 import { Gauge } from "./Gauge";
@@ -16,6 +16,7 @@ export function Workbench() {
   const [error, setError] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -116,6 +117,19 @@ export function Workbench() {
     } catch { /* clipboard 可能不可用 */ }
   };
 
+  const onFile = async (f: File | undefined) => {
+    if (!f) return;
+    setUploading(true);
+    try {
+      const r = await extractText(f);
+      setText(r.text);
+    } catch (e) {
+      alert("文档解析失败：" + String(e));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const run = async () => {
     if (!text.trim() || selected.size === 0) return;
     setRunning(true);
@@ -158,6 +172,11 @@ export function Workbench() {
             onClick={() => setText("")}>
             清空
           </button>
+          <label className="ghost" style={{ padding: "8px 16px", fontSize: 13, cursor: uploading ? "wait" : "pointer", borderRadius: "var(--r-md)", border: "1px solid var(--border)", opacity: uploading ? .6 : 1 }}>
+            {uploading ? "解析中…" : "📄 上传文档"}
+            <input type="file" accept=".txt,.md,.markdown,.pdf,.docx" style={{ display: "none" }} disabled={uploading}
+              onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
+          </label>
           <span className="num" style={{ marginLeft: 8 }}>
             {text.length} 字 · {nw} 词
           </span>
