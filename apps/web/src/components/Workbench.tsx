@@ -154,17 +154,15 @@ export function Workbench() {
               )}
             </div>
           )}
+          {report && (
+            <div style={{ marginTop: 16 }}>
+              <Heatmap report={report} />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── ④ 热力图：通栏 ─────────────────────────────────── */}
-      {report && (
-        <div style={{ marginTop: 16 }}>
-          <Heatmap report={report} />
-        </div>
-      )}
-
-      {/* ── ⑤ 各检测器详情：通栏网格 ───────────────────────── */}
+      {/* ── ④ 各检测器详情：通栏网格 ───────────────────────── */}
       {report && (
         <div className="panel" style={{ marginTop: 16 }}>
           <div className="label">各检测器</div>
