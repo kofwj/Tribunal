@@ -1,146 +1,115 @@
-# AITextJury
+# AITextJury 中文版
 
-**A jury of AI-text detectors. You are the judge.**
+**一个 AI 文本检测器的陪审团，你来当法官。**
 
-AITextJury is an open workbench for AI-generated text detection — not
-"yet another AI detector" that prints one unreliable percentage. Paste text,
-run *many* independent detection methods side by side through one unified
-**Detector API**, and look at the underlying evidence — per-sentence
-heatmaps, surprisal, cross-model agreement, stylometric fingerprint,
-calibration quality — before forming any opinion. Each detector is a juror
-that presents its evidence; the verdict is yours. Think of it as a
-VirusTotal-style workbench for AI-generated text: anyone can write a
-detector plugin, plug it in, and compare methods openly.
+AITextJury 是一个开放的 AI 生成文本检测工作台——不是那种只吐一个不靠谱百分比的"又一个 AI 检测器"。粘贴文本，同时跑**多种**独立的检测方法，看底层的证据——逐句热力图、困惑度、跨模型一致性、文体指纹、校准质量——再下判断。每个检测器都是一位陪审员，负责呈堂证供； verdict 由你来定。可以把它理解成 AI 文本检测界的 VirusTotal：任何人都能写检测器插件接进来，公开对比各种方法。
+
+本仓库是基于 [YiCQi/AITextJury](https://github.com/YiCQi/AITextJury) 的中文定制分支：全站中文化、针对中文网文优化、修复上游 bug。
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     AITextJury Workbench                        │
-│  text ─▶ segmenter ─▶ detectors (parallel, cached) ─▶ consensus │
+│                     AITextJury 工作台                            │
+│  文本 ─▶ 分句 ─▶ 检测器（并行，有缓存） ─▶ 综合判定               │
 └───────────┬──────────────────────────────────────────────────────┘
             │
    ┌────────┴────────────────────────────────────────────┐
-   │ Detector API  (every detector returns the same shape)│
+   │ 检测器 API（所有检测器返回统一格式）                  │
    └────────┬────────────────────────────────────────────┘
         ┌────┴─────┬─────────────┬────────────┬─────────────┐
-   stylometry  local-LM      classifier   LLM-Judge      your
-   (stats)   perplexity /   (BYOM, HF)   (BYOK: OpenAI, plugins
-             Fast-DetectGPT /          Gemini, DeepSeek, (plugins/)
-             Binoculars                Ollama, anything)
+   文体指纹      本地语言模型    分类器       LLM 裁判      你的
+   （统计）    困惑度 /        （自选 HF    （自带 Key：   插件
+              快速检测 /       模型）       OpenAI、     (plugins/)
+              双筒望远镜                   Gemini、
+                                          DeepSeek、
+                                          Ollama…）
 ```
 
-## Quickstart
+## 快速开始
 
-Requires [Python 3.10+](https://www.python.org/downloads/) and Node 18+.
+需要 [Python 3.10+](https://www.python.org/downloads/) 和 Node 18+。
 
 ```bash
-git clone https://github.com/YiCQi/AITextJury.git
-cd AITextJury
+git clone https://github.com/kofwj/aitextjury-zh.git
+cd aitextjury-zh
 
+# Docker（不需要装 Python/Node，自带 torch）：
+docker compose up
+# 打开 http://localhost:8000
+
+# 本地开发：
 # Windows (PowerShell)
-scripts\setup.ps1 -Ml     # one-time: private venv + all deps incl. torch
-scripts\dev.ps1           # workbench at http://localhost:5173, API at :8000
+scripts\setup.ps1 -Ml     # 一次性：建虚拟环境 + 装依赖（含 torch）
+scripts\dev.ps1           # 工作台 http://localhost:5173，API :8000
 
 # Linux / macOS
 ./scripts/setup.sh --with-ml
 ./scripts/dev.sh
 ```
 
-* **Why the flag**: without `-Ml` / `--with-ml` you get a light install (no
-  torch) and the four LM-based detectors stay `unavailable` — each shows the
-  fix command on its panel card. Re-running setup with the flag is safe
-  (the venv is reused). GPT-2-family weights (~0.5–2 GB) download on first
-  analysis; if HuggingFace is blocked, set `HF_ENDPOINT=https://hf-mirror.com`
-  first. After that everything runs offline.
-* **Docker** (no Python/Node needed, torch included):
-  `docker compose up` → http://localhost:8000
-* Got `ModuleNotFoundError: fastapi`? You ran Python outside the venv — use
-  the dev script, or activate `apps/api/.venv` first.
+* **为什么加 `--with-ml`**：不加就是轻量安装（没有 torch），四个基于语言模型的检测器会显示`不可用`，面板上会告诉你修复命令。加 flag 重跑是安全的（复用虚拟环境）。GPT-2 系列权重（约 0.5–2 GB）首次分析时自动下载；如果 HuggingFace 被墙，先设 `HF_ENDPOINT=https://hf-mirror.com`。之后全离线运行。
+* 报 `ModuleNotFoundError: fastapi`？说明你没进虚拟环境——用 dev 脚本，或先激活 `apps/api/.venv`。
 
-## Using the workbench
+## 怎么用
 
-Paste text in the **Workbench** tab, tick detectors, hit **Analyze**, then
-read the page top-to-bottom:
+在**检测**页粘贴文本，勾选检测器，点**开始检测**，从上往下看：
 
-1. **Consensus** — the calibration-weighted vote across detectors. When
-   detectors disagree, the notes say who said what; disagreement is
-   information, not a bug.
-2. **Detector cards** — every `score` is normalized so **higher = more
-   AI**, always. Raw values keep their native direction and each card
-   states it (e.g. *Binoculars: raw 6.4, lower = AI*).
-3. **Heatmap** — which *parts* of the text look AI, per sentence/paragraph.
-4. **Evidence chips** — the quotable numbers behind the verdict:
-   perplexity, burstiness, stock-phrase hits…
+1. **综合判定**——各检测器按校准质量加权的投票。检测器意见不一致时，备注会写明谁说了什么；分歧是信息，不是 bug。
+2. **检测器卡片**——每个 `score` 都已归一化，**越高越像 AI**。原始值保留原生方向，每张卡片都会注明（比如*双筒望远镜：原始值 6.4，越低越像 AI*）。
+3. **热力图**——文本的**哪些部分**像 AI，精确到句/段。
+4. **证据条**—— verdict 背后的硬数字：困惑度、突发性、套话命中……
 
-The other tabs:
+其他页签：
 
-* **Providers** — paste any OpenAI-compatible or Gemini key (DeepSeek,
-  OpenRouter, local Ollama — even keyless) to enable the **LLM Judge**.
-  Keys stay in the local `data/providers.json`, masked on screen.
-* **Calibration** — drop labeled samples into `data/bench/*.jsonl`
-  (`{"text": ..., "label": 1}` AI / `0` human) and hit **Recalibrate**:
-  each detector gets an honest AUC / accuracy, and consensus weights
-  follow measured quality.
-* **Methodology** — what each detector measures and what it is blind to.
+* **模型接入**——粘贴任意 OpenAI 兼容或 Gemini 的 key（DeepSeek、OpenRouter、本地 Ollama，甚至免 key）来启用 **LLM 裁判**。Key 只存在本地 `data/providers.json`，页面上打码显示。
+* **校准**——把标注样本丢进 `data/bench/*.jsonl`（`{"text": ..., "label": 1}` 表 AI / `0` 表人工），点**重新校准**：每个检测器给出真实的 AUC / 准确率，综合判定的权重按实测质量来。
+* **原理**——每个检测器测什么、对什么盲区。
 
-There is also a CLI with the same engine:
+还有个命令行，同一个引擎：
 
 ```bash
 python -m aitextjury.cli analyze article.txt -d stylometry -o report.json
 python -m aitextjury.cli calibrate -d stylometry --dataset demo
 ```
 
-> Privacy: everything except the LLM Judge runs **on your machine** — text,
-> history and keys never leave it. Point the Judge at a local Ollama/vLLM
-> and AITextJury is fully offline.
+> 隐私：除了 LLM 裁判，**全在本机跑**——文本、历史、key 不出内网。裁判指向本地 Ollama/vLLM 就是纯离线。
 
-## The detector panel
+## 检测器一览
 
-| detector | type | needs | idea |
+| 检测器 | 类型 | 需要 | 原理 |
 |---|---|---|---|
-| **Stylometry** | local stats | nothing | burstiness, repetition profile, connective boilerplate, LLM-register "tells" (EN+ZH) |
-| **LLM Perplexity** | local LM | torch+transformers | mean per-token surprisal under a small causal LM (default gpt2, configurable) |
-| **Fast-DetectGPT** | local LM | torch+transformers | conditional probability curvature via contrastive perturbation ([Bao et al., ICLR'24](https://arxiv.org/abs/2310.05130)) — documented variant |
-| **Binoculars** | local LM pair | torch+transformers | performer/observer cross-model agreement ([Hans et al. 2024](https://arxiv.org/abs/2401.12070)) — documented closed form |
-| **HF Classifier** | BYOM | torch+transformers | any HuggingFace text-classification model you choose |
-| **LLM Judge** | BYOK | a provider key or local Ollama | your LLM judges with a strict-JSON protocol, flags paragraphs, explains |
-| **Plugins** | community | anything | e.g. the bundled `length_rhythm` example (30 lines) |
+| **文体指纹** | 本地统计 | 无 | 突发性、重复模式、连接词套话、LLM 腔"马脚"（中英双语词表） |
+| **困惑度检测** | 本地语言模型 | torch+transformers | 小因果语言模型下的平均 token 困惑度（默认 gpt2，可换） |
+| **快速检测** | 本地语言模型 | torch+transformers | 条件概率曲率，对比扰动法（[Bao et al., ICLR'24](https://arxiv.org/abs/2310.05130)） |
+| **双筒望远镜** | 本地双模型 | torch+transformers | 执行者/观察者跨模型一致性（[Hans et al. 2024](https://arxiv.org/abs/2401.12070)） |
+| **HF 分类器** | 自选模型 | torch+transformers | 任意 HuggingFace 文本分类模型，中文推荐 `yuchuantian/AIGC_detector_zhv3` |
+| **LLM 裁判** | 自带 Key | provider key 或本地 Ollama | 让你的 LLM 用严格 JSON 协议当裁判，标段落、给理由 |
+| **插件** | 社区 | 任意 | 比如自带的 `length_rhythm` 示例（30 行） |
 
-Every result shows normalized score, raw statistic (+ direction), verdict,
-threshold, signals, evidence, and **calibration status** — or an honest
-error message.
+每个结果都展示：归一化分数、原始统计量（+方向）、判定、阈值、信号、证据，以及**校准状态**——或一条诚实的报错。
 
-## BYOK — your keys, your machine
+## 自带 Key（BYOK）
 
-OpenAI, Gemini, DeepSeek, OpenRouter, Groq, keyless local Ollama, or any
-OpenAI-compatible endpoint (vLLM, LM Studio, …). Keys live only in the
-local `data/providers.json`, are sent only to the endpoint you configure,
-never echoed back unmasked, and fall back to the provider's env var
-(`OPENAI_API_KEY`, `GEMINI_API_KEY`, …) when empty. Details:
-[docs/BYOK.md](docs/BYOK.md).
+OpenAI、Gemini、DeepSeek、OpenRouter、Groq、免 key 的本地 Ollama，或任何 OpenAI 兼容接口（vLLM、LM Studio…）。Key 只存本地 `data/providers.json`，只发往你配置的接口，页面上永远打码，为空时回退到环境变量（`OPENAI_API_KEY`、`GEMINI_API_KEY`…）。详见 [docs/BYOK.md](docs/BYOK.md)。
 
-## Calibration — the honesty engine
+## 校准——诚实引擎
 
-Out of the box, detectors run on documented **default bands** and are
-visibly flagged `uncalibrated`. Fit them on labeled data (UI button or
-`POST /api/calibration/run`) and each detector reports **AUC / accuracy /
-ECE / Brier** while consensus weights detectors by measured accuracy. The
-bundled demo set is a *demo* — calibrate on data from your own domain.
+开箱即用的是文档化的**默认阈值**，会明确标 `未校准`。用标注数据拟合后（页面按钮或 `POST /api/calibration/run`），每个检测器报告 **AUC / 准确率 / ECE / Brier**，综合判定按实测准确率加权。自带的 demo 集只是 demo——请用你自己领域的数据校准。
 
-## Plugins — anyone can add a detector
+## 插件——人人可加检测器
 
 ```python
-# data/plugins/my_detector.py  (or plugins/ for bundled examples)
+# data/plugins/my_detector.py（或 plugins/ 放自带示例）
 from aitextjury.detectors.base import BaseDetector, RawOutcome
 from aitextjury.schemas import Availability
 
 class MyDetector(BaseDetector):
-    id, name, family, description, DEFAULT_BANDS = ...  # see docs/DETECTOR_API.md
+    id, name, family, description, DEFAULT_BANDS = ...  # 见 docs/DETECTOR_API.md
 
     def availability(self, ctx=None):
         return Availability(ok=True)
 
     async def analyze(self, ctx):
-        ...                      # ctx.text, ctx.segmentation, ctx.providers…
+        ...  # ctx.text, ctx.segmentation, ctx.providers…
         return RawOutcome(raw_score=..., raw_direction="higher_is_ai",
                           signals={...}, segment_scores=[...],
                           evidence=[EvidenceItem(title=…, detail=…)])
@@ -149,52 +118,44 @@ def register(registry):
     registry.register(MyDetector())
 ```
 
-Restart the API — your detector appears in the UI with calibration, caching
-and consensus treated identically to built-ins. Full contract:
-[docs/DETECTOR_API.md](docs/DETECTOR_API.md).
+重启 API——你的检测器出现在 UI 里，校准、缓存、综合判定一视同仁。完整契约见 [docs/DETECTOR_API.md](docs/DETECTOR_API.md)。
 
-## Repository layout
+## 目录结构
 
 ```
-apps/api/aitextjury/     FastAPI backend, detector registry, engine,
-                          calibration, BYOK providers, CLI, bench corpus
-apps/web/                 React + Vite + TypeScript workbench UI
-plugins/                  bundled example plugins
-data/                     runtime state (history, keys, cache, fits) — local-only
-docs/                     architecture, detector API, BYOK, roadmap
-tests are under apps/api/tests
+apps/api/aitextjury/     FastAPI 后端：检测器注册表、引擎、校准、
+                         BYOK 接入、CLI、评测集
+apps/web/                React + Vite + TypeScript 工作台 UI
+plugins/                 自带示例插件
+data/                    运行时状态（历史、key、缓存、拟合）——仅本地
+docs/                    架构、检测器 API、BYOK、路线图
+tests 在 apps/api/tests
 ```
 
-## Honest limitations
+## 诚实的局限
 
-* **Adversarial text defeats detectors.** Rewritten, paraphrased or
-  human-edited AI text and heavily-polished human text genuinely overlap.
-  AITextJury surfaces evidence and lets humans decide — it must not be
-  used as proof, or to accuse students/authors.
-* Local-LM detectors default to small English-centric models (`gpt2`); for
-  Chinese/other languages point them at multilingual models (e.g.
-  `Qwen2.5-0.5B`) via detector settings.
-* Scores are probabilities only as far as their calibration says (that's
-  why calibration status is displayed everywhere).
+* **对抗文本能骗过检测器。** 改写、洗稿、人工润色过的 AI 文，和精修过的人类文本，确实有重叠区。AITextJury 只呈现证据、让人来判——绝不能当实锤，更不能用来指控学生/作者。
+* 本地语言模型检测器默认是小而偏英文的模型（`gpt2`）；中文请在检测器设置里换多语言模型（如 `Qwen2.5-0.5B`）。
+* 分数是不是概率，校准说了算（所以校准状态到处都显示）。
 
-## Related open-source work
+## 本分支的改动
 
-Star counts checked 2026-10-03. Most of the ecosystem slots right in:
+见 [CHANGELOG-zh.md](CHANGELOG-zh.md)。主要包括：
 
-* [baoguangsheng/fast-detect-gpt](https://github.com/baoguangsheng/fast-detect-gpt) (434★) — the Fast-DetectGPT paper (ICLR'24), reference for our implementation. Likewise [ahans30/Binoculars](https://github.com/ahans30/Binoculars) (421★, ICML'24).
-* [Hello-SimpleAI](https://huggingface.co/Hello-SimpleAI) `chatgpt-detector-roberta` / `-long` — drop-in BYOM ids for the HF Classifier.
-* [YuchuanTian/AIGC_text_detector](https://github.com/YuchuanTian/AIGC_text_detector) (472★) — MPU multiscale detection (ICLR'24 spotlight).
-* [lynote-ai/ai-text-detector](https://github.com/lynote-ai/ai-text-detector) (445★) — local, cautious, explainable; kindred philosophy. Also [Jihuai-wpy/SeqXGPT](https://github.com/Jihuai-wpy/SeqXGPT) (101★, sentence-level like our heatmap) and [ai-detected/ai-content-detectors](https://github.com/ai-detected/ai-content-detectors) (166★, awesome-list).
-* [liamdugan/raid](https://github.com/liamdugan/raid) (217★) — big adversarial benchmark, a natural corpus for the Calibration tab; [martiansideofthemoon/ai-detection-paraphrases](https://github.com/martiansideofthemoon/ai-detection-paraphrases) (205★) — why paraphrase attacks make single scores unreliable, i.e. why this workbench shows disagreement.
+* 前端全站中文化 + 视觉重做
+* 检测器选择面板重设计（紧凑布局、全选/清空、状态圆点）
+* 修复上游 `availability(ctx=None)` 导致已配置检测器显示不可用的 bug（检测器列表、校准接口、校准上下文三处）
+* HF 分类器批量推理 + 进程内模型缓存（177 句从 89 秒降到热机后 0.7 秒/6 句）
+* Dockerfile 默认 CPU 版 torch，支持 `HF_ENDPOINT` 镜像源
+* 中文检测推荐模型：`yuchuantian/AIGC_detector_zhv3`（ICLR'24 MPU 方法）
+
+## 相关开源项目
+
+* [baoguangsheng/fast-detect-gpt](https://github.com/baoguangsheng/fast-detect-gpt) (434★) —— Fast-DetectGPT 论文（ICLR'24），我们实现的参考。同样 [ahans30/Binoculars](https://github.com/ahans30/Binoculars) (421★, ICML'24)。
+* [Hello-SimpleAI](https://huggingface.co/Hello-SimpleAI) `chatgpt-detector-roberta` / `-long` —— HF 分类器的即插即用模型。
+* [YuchuanTian/AIGC_text_detector](https://github.com/YuchuanTian/AIGC_text_detector) (472★) —— MPU 多尺度检测（ICLR'24 spotlight），中文 v3 模型。
+* [lynote-ai/ai-text-detector](https://github.com/lynote-ai/ai-text-detector) (445★) —— 本地、谨慎、可解释，理念相近。
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Detector methods belong to their authors and
-papers, linked from each detector card and the docs.
-
-## More docs
-
-* [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pieces fit
-* [docs/DETECTOR_API.md](docs/DETECTOR_API.md) — write your own detector
-* [docs/BYOK.md](docs/BYOK.md) — provider configuration details
-* [docs/ROADMAP.md](docs/ROADMAP.md) — where this is heading
+MIT —— 见 [LICENSE](LICENSE)。检测方法归原作者和论文所有，检测器卡片和文档里有链接。
