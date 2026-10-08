@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnalyzeReport, DetectorInfo } from "../types";
-import { analyze, fetchDetectors, fetchSettings, saveSettings } from "../api";
+import { analyze, fetchDetectors } from "../api";
 import { Heatmap } from "./Heatmap";
 import { DetectorCard } from "./DetectorCard";
 import { Gauge } from "./Gauge";
@@ -16,7 +16,6 @@ export function Workbench() {
   const [error, setError] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
-  const [hfModel, setHfModel] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -24,11 +23,6 @@ export function Workbench() {
         const { detectors } = await fetchDetectors();
         setDetectors(detectors);
         setSelected(new Set(detectors.filter(d => d.default_enabled).map(d => d.id)));
-        try {
-          const { settings } = await fetchSettings();
-          const m = (settings as any)?.detectors?.hf_classifier?.model;
-          if (m) setHfModel(m);
-        } catch { /* ignore */ }
       } catch (e) {
         setError(String(e));
       }
@@ -104,8 +98,7 @@ export function Workbench() {
         display: "grid", gridTemplateColumns: "300px 1fr",
         gap: 16, marginTop: 16, alignItems: "start",
       }}>
-        <DetectorPanel detectors={detectors} selected={selected} onToggle={toggle}
-          hfModel={hfModel} onModelChange={setHfModel} />
+        <DetectorPanel detectors={detectors} selected={selected} onToggle={toggle} />
 
         <div ref={resultRef} style={{ scrollMarginTop: 16 }}>
           {!report ? (
@@ -199,34 +192,12 @@ export function Workbench() {
   );
 }
 
-const HF_MODELS = [
-  { id: "yuchuantian/AIGC_detector_zhv3", label: "中文 v3（推荐）" },
-  { id: "yuchuantian/AIGC_detector_zhv2", label: "中文 v2" },
-  { id: "Hello-SimpleAI/chatgpt-detector-roberta-chinese", label: "旧版中文" },
-];
-
-function DetectorPanel({ detectors, selected, onToggle, hfModel, onModelChange }:
+function DetectorPanel({ detectors, selected, onToggle }:
 {
   detectors: DetectorInfo[];
   selected: Set<string>;
   onToggle: (id: string) => void;
-  hfModel: string;
-  onModelChange: (m: string) => void;
 }) {
-  const [editingModel, setEditingModel] = useState(false);
-  const [modelInput, setModelInput] = useState("");
-
-  const saveModel = async (modelId: string) => {
-    const id = modelId.trim();
-    if (!id) return;
-    try {
-      await saveSettings({ detectors: { hf_classifier: { model: id } } } as any);
-      onModelChange(id);
-      setEditingModel(false);
-    } catch (e) {
-      alert("保存失败：" + String(e));
-    }
-  };
   const available = detectors.filter((d) => d.available);
   const allOn = available.length > 0 && available.every((d) => selected.has(d.id));
   const toggleAll = () => {
@@ -255,67 +226,14 @@ function DetectorPanel({ detectors, selected, onToggle, hfModel, onModelChange }
         {sorted.map((d) => {
           const on = selected.has(d.id);
           return (
-            <div key={d.id}>
-              <label
-                className={`det-opt${on ? " on" : ""}${d.available ? "" : " off"}`}
-                data-tip={d.available ? detectorDesc(d.id, d.description) : d.reason}>
-                <input type="checkbox" checked={on} disabled={!d.available}
-                  onChange={() => onToggle(d.id)} />
-                <span className="det-opt-name">{detectorName(d.id, d.name)}</span>
-                <span className={`dot ${d.available ? (d.uncalibrated ? "warn" : "ok") : "off"}`} />
-              </label>
-              {d.id === "hf_classifier" && d.available && (
-                <div style={{ margin: "6px 0 2px 26px" }}>
-                  {!editingModel ? (
-                    <button
-                      onClick={() => { setModelInput(hfModel); setEditingModel(true); }}
-                      title="点击更换模型"
-                      style={{
-                        background: "none", border: "none", padding: 0,
-                        fontSize: 11, color: "var(--text-faint)",
-                        cursor: "pointer", fontFamily: "var(--mono)",
-                        maxWidth: "100%", overflow: "hidden",
-                        textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>
-                        {"\u2699 "}{hfModel ? hfModel.split("/").pop() : "选择模型"}
-                      </button>
-                  ) : (
-                    <div>
-                      <select
-                        value={HF_MODELS.some(m => m.id === modelInput) ? modelInput : "__custom"}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (v !== "__custom") { void saveModel(v); }
-                        }}
-                        style={{ width: "100%", fontSize: 12, marginBottom: 6 }}>
-                        {HF_MODELS.map(m => (
-                          <option key={m.id} value={m.id}>{m.label} — {m.id}</option>
-                        ))}
-                        <option value="__custom">自定义…</option>
-                      </select>
-                      {(!HF_MODELS.some(m => m.id === modelInput)) && (
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <input
-                            type="text" value={modelInput}
-                            onChange={(e) => setModelInput(e.target.value)}
-                            placeholder="HuggingFace 模型 ID"
-                            style={{ flex: 1, fontSize: 12, padding: "6px 8px" }}
-                          />
-                          <button className="ghost" style={{ padding: "6px 12px", fontSize: 12 }}
-                            onClick={() => void saveModel(modelInput)}>
-                            确定
-                          </button>
-                          <button className="ghost" style={{ padding: "6px 12px", fontSize: 12 }}
-                            onClick={() => setEditingModel(false)}>
-                            取消
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <label key={d.id}
+              className={`det-opt${on ? " on" : ""}${d.available ? "" : " off"}`}
+              data-tip={d.available ? detectorDesc(d.id, d.description) : d.reason}>
+              <input type="checkbox" checked={on} disabled={!d.available}
+                onChange={() => onToggle(d.id)} />
+              <span className="det-opt-name">{detectorName(d.id, d.name)}</span>
+              <span className={`dot ${d.available ? (d.uncalibrated ? "warn" : "ok") : "off"}`} />
+            </label>
           );
         })}
       </div>

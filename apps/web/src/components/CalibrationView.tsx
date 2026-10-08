@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { fetchBench, fetchCalibration, runCalibration } from "../api";
+import { fetchBench, fetchCalibration, fetchSettings, runCalibration, saveSettings } from "../api";
 import type { BenchDataset, CalibrationFitPublic } from "../types";
 import { fmtPct, detectorName } from "../util";
+
+const HF_MODELS = [
+  { id: "yuchuantian/AIGC_detector_zhv3", label: "中文 v3（推荐）" },
+  { id: "yuchuantian/AIGC_detector_zhv2", label: "中文 v2" },
+  { id: "Hello-SimpleAI/chatgpt-detector-roberta-chinese", label: "旧版中文" },
+];
 
 /**
  * 校准页 —— 诚实度引擎。
@@ -15,6 +21,9 @@ export function CalibrationView() {
   const [busy, setBusy] = useState(false);
   const [lastRun, setLastRun] = useState<Record<string, CalibrationFitPublic> | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [hfModel, setHfModel] = useState("");
+  const [modelInput, setModelInput] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const refresh = async () => {
     try {
@@ -22,6 +31,11 @@ export function CalibrationView() {
         await Promise.all([fetchCalibration(), fetchBench()]);
       setFits(calibration);
       setDatasets(datasets);
+      try {
+        const { settings } = await fetchSettings();
+        const m = (settings as any)?.detectors?.hf_classifier?.model;
+        if (m) { setHfModel(m); setModelInput(m); }
+      } catch { /* ignore */ }
       if (datasets.length && !datasets.some((d) => d.name === dataset)) {
         setDataset(datasets[0].name);
       }
@@ -31,6 +45,20 @@ export function CalibrationView() {
   };
 
   useEffect(() => { void refresh(); }, []);
+
+  const saveModel = async () => {
+    const id = modelInput.trim();
+    if (!id || id === hfModel) return;
+    setSaving(true);
+    try {
+      await saveSettings({ detectors: { hf_classifier: { model: id } } } as any);
+      setHfModel(id);
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const doRun = async () => {
     setBusy(true);
@@ -91,6 +119,42 @@ export function CalibrationView() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="panel">
+        <h3>模型配置</h3>
+        <p className="hint">
+          HF 分类器用的 HuggingFace 模型。换模型后建议重新校准。
+        </p>
+        <div className="kv">
+          <span className="k">HF 分类器模型</span>
+          <span className="v" style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
+            {hfModel || "—"}
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <select
+            value={HF_MODELS.some(m => m.id === modelInput) ? modelInput : "__custom"}
+            onChange={(e) => setModelInput(e.target.value === "__custom" ? "" : e.target.value)}
+            style={{ minWidth: 280 }}>
+            {HF_MODELS.map(m => (
+              <option key={m.id} value={m.id}>{m.label} — {m.id}</option>
+            ))}
+            <option value="__custom">自定义…</option>
+          </select>
+          {!HF_MODELS.some(m => m.id === modelInput) && (
+            <input
+              type="text" value={modelInput}
+              onChange={(e) => setModelInput(e.target.value)}
+              placeholder="HuggingFace 模型 ID"
+              style={{ flex: 1, minWidth: 200 }}
+            />
+          )}
+          <button className="primary" disabled={saving || !modelInput.trim() || modelInput.trim() === hfModel}
+            onClick={saveModel}>
+            {saving ? "保存中…" : "保存"}
+          </button>
+        </div>
       </div>
 
       <div className="panel">
