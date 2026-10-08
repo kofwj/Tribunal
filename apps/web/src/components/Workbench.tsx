@@ -207,6 +207,10 @@ function DetectorPanel({ detectors, selected, onToggle }:
       available.forEach((d) => { if (!selected.has(d.id)) onToggle(d.id); });
     }
   };
+  // 已选中的浮到上面，未选中的沉底（各自保持后端顺序）
+  const sorted = [...detectors].sort((a, b) =>
+    Number(selected.has(b.id)) - Number(selected.has(a.id)));
+
   return (
     <div className="panel">
       <div style={{ display: "flex", alignItems: "center" }}>
@@ -219,7 +223,7 @@ function DetectorPanel({ detectors, selected, onToggle }:
         组合多种独立方法，结果互相印证。
       </p>
       <div className="det-picker">
-        {detectors.map((d) => {
+        {sorted.map((d) => {
           const on = selected.has(d.id);
           return (
             <label key={d.id}
