@@ -244,6 +244,17 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 /* heatmap */
 .heatmap { font-size: 13px; line-height: 2; }
 .heatmap span { padding: 2px 4px; border-radius: 4px; }
+.seg-tip {
+  position: fixed; z-index: 60;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  font-size: 12px; line-height: 1.8;
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  pointer-events: none;
+  max-width: 320px;
+}
 
 /* ------------------------------- tables ------------------------------- */
 
