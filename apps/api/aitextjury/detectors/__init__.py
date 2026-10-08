@@ -21,13 +21,14 @@ from .lm_perplexity import LMPerplexityDetector
 from .llm_judge import LLMJudgeDetector
 from .stylometry import StylometryDetector
 
+# Order: Chinese-capable detectors first, English-centric models last.
 CORE_DETECTORS: list[type[BaseDetector]] = [
+    HFClassifierDetector,
+    LLMJudgeDetector,
     StylometryDetector,
     LMPerplexityDetector,
     FastDetectGPTDetector,
     BinocularsDetector,
-    HFClassifierDetector,
-    LLMJudgeDetector,
 ]
 
 
