@@ -38,7 +38,7 @@ class HFClassifierDetector(BaseDetector):
         "downloaded until you configure one.")
     link = "https://huggingface.co/models?pipeline_tag=text-classification&search=chatgpt"
     requires = ["torch", "transformers"]
-    default_enabled = False
+    default_enabled = True
     heavy = True
     DEFAULT_BANDS = (0.5, 0.2)
 
