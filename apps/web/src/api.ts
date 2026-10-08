@@ -89,6 +89,9 @@ export const testProvider = (id: string) =>
   sendJSON<{ id: string; ok: boolean; detail: string; latency_ms: number }>(
     "POST", `/keys/${id}/test`);
 
+export const previewModels = (draft: { kind: string; base_url: string; api_key: string }) =>
+  sendJSON<{ models: string[] }>("POST", "/keys/models/preview", draft);
+
 export const saveSettings = (settings: Partial<Settings>) =>
   sendJSON<{ settings: Settings }>("PUT", "/settings", settings);
 

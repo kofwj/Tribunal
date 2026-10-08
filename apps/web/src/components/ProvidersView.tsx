@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { deleteProvider, fetchKeys, saveProvider, testProvider } from "../api";
+import { deleteProvider, fetchKeys, previewModels, saveProvider, testProvider } from "../api";
 import type { PublicProvider, ProviderTemplate } from "../types";
 
 type Draft = {
@@ -25,6 +25,8 @@ export function ProvidersView() {
   const [busy, setBusy] = useState(false);
   const [tests, setTests] = useState<Record<string, { ok: boolean; detail: string; latency_ms: number }>>({});
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [models, setModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   const refresh = async () => {
     const data = await fetchKeys();
@@ -80,6 +82,27 @@ export function ProvidersView() {
     setFeedback(`正在编辑「${p.id}」——密钥留空即保留原值`);
   };
 
+  const fetchModels = async () => {
+    if (!draft.base_url.trim()) {
+      setFeedback("先填接口地址");
+      return;
+    }
+    setLoadingModels(true);
+    setModels([]);
+    try {
+      const r = await previewModels({
+        kind: draft.kind, base_url: draft.base_url, api_key: draft.api_key,
+      });
+      setModels(r.models || []);
+      if (!r.models?.length) setFeedback("接口返回了空列表");
+      else setFeedback(`拉到 ${r.models.length} 个模型，从下拉框选一个`);
+    } catch (e) {
+      setFeedback(String(e));
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
   const doTest = async (id: string) => {
     setTests({ ...tests, [id]: { ok: false, detail: "…", latency_ms: 0 } });
     try {
@@ -116,9 +139,29 @@ export function ProvidersView() {
           </select>
           <input placeholder="接口地址（从模板带入）" value={draft.base_url}
             onChange={(e) => setDraft({ ...draft, base_url: e.target.value })} />
-          <input placeholder="模型（如 gpt-4o-mini / qwen2.5:7b)"
-            value={draft.default_model}
-            onChange={(e) => setDraft({ ...draft, default_model: e.target.value })} />
+          <div style={{ display: "flex", gap: 6 }}>
+            {models.length ? (
+              <select
+                value={models.includes(draft.default_model) ? draft.default_model : ""}
+                onChange={(e) => setDraft({ ...draft, default_model: e.target.value })}
+                style={{ flex: 1 }}>
+                <option value="">— 从列表选择 —</option>
+                {models.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            ) : (
+              <input placeholder="模型（如 gpt-4o-mini / qwen2.5:7b)"
+                value={draft.default_model}
+                onChange={(e) => setDraft({ ...draft, default_model: e.target.value })}
+                style={{ flex: 1 }} />
+            )}
+            <button className="ghost" style={{ padding: "6px 12px", fontSize: 12, whiteSpace: "nowrap" }}
+              disabled={loadingModels || !draft.base_url.trim()}
+              onClick={() => void fetchModels()}>
+              {loadingModels ? "拉取中…" : "拉取模型"}
+            </button>
+          </div>
           <input placeholder="API 密钥（空 = 保留原值 / 读环境变量）"
             value={draft.api_key} type="password"
             onKeyDown={(e) => { if (e.key === "Enter" && draft.base_url.trim()) void save(); }}

@@ -227,6 +227,23 @@ def build_app(world: World | None = None) -> FastAPI:
             raise HTTPException(404, "provider not configured")
         return {"models": await provider.list_models()}
 
+    @app.post("/api/keys/models/preview")
+    async def keys_models_preview(body: dict):
+        """未保存的服务商预检模型列表：{kind, base_url, api_key}"""
+        from .providers import build_provider
+        kind = body.get("kind", "openai_compatible")
+        base_url = (body.get("base_url") or "").strip()
+        api_key = body.get("api_key") or ""
+        if not base_url:
+            raise HTTPException(422, "base_url required")
+        try:
+            provider = build_provider(
+                {"kind": kind, "base_url": base_url, "api_key": api_key})
+            models = await provider.list_models()
+            return {"models": models}
+        except Exception as e:
+            raise HTTPException(502, f"拉取失败: {e}")
+
     # ------------------------------------------------------------- settings
 
     @app.get("/api/settings")
@@ -275,16 +292,25 @@ def build_app(world: World | None = None) -> FastAPI:
         det_ids = [d for d in w.registry.ids()
                    if d in (req.detector_ids or w.registry.ids())]
         results: dict[str, dict] = {}
+        eng = w.engine
+        class _SettingsProbe:
+            def det_settings(self, detector_id):
+                return eng.detector_eff(detector_id)
+        probe = _SettingsProbe()
+        from .engine import _ProviderProbe
+        judge_probe = _ProviderProbe(w.providers)
+        det_settings = {d: eng.detector_eff(d) for d in det_ids}
         for det_id in det_ids:
             det = w.registry.get(det_id)
-            avail = det.availability(None)
+            avail = det.availability(judge_probe if det_id == "llm_judge" else probe)
             if not avail.ok:
                 results[det_id] = {"ok": False,
                                    "reason": f"unavailable: {avail.reason}"}
                 continue
             try:
                 fit = await calibrate_detector(
-                    det, corpus, max_chars=req.max_chars)
+                    det, corpus, max_chars=req.max_chars,
+                    detector_settings=det_settings)
             except Exception as e:
                 fit = {"ok": False, "reason": f"{type(e).__name__}: {e}"}
             if fit.get("ok") and fit.get("fit"):
