@@ -14,7 +14,7 @@ export function DocsView() {
           Binoculars 式跨模型验证、HF 分类器、你自己的 LLM 裁判、社区插件——
           返回的都是同一种结构：
         </p>
-        <pre style={{ background: "var(--bg-soft)", padding: 14, borderRadius: 8, fontSize: 12.5 }}>{`{
+        <pre style={{ background: "var(--bg)", padding: 12, borderRadius: 8, fontSize: 12.5 }}>{`{
   score:        0.62,          // 归一化的 AI 概率
   raw_score:    14.2,          // 检测器的原生统计量
   raw_direction:"lower_is_ai", // 原始分怎么读
