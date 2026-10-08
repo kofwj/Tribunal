@@ -92,6 +92,7 @@ export function ProvidersView() {
     try {
       const r = await previewModels({
         kind: draft.kind, base_url: draft.base_url, api_key: draft.api_key,
+        provider_id: editingId ?? undefined,
       });
       setModels(r.models || []);
       if (!r.models?.length) setFeedback("接口返回了空列表");

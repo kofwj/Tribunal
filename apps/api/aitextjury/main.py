@@ -229,11 +229,22 @@ def build_app(world: World | None = None) -> FastAPI:
 
     @app.post("/api/keys/models/preview")
     async def keys_models_preview(body: dict):
-        """未保存的服务商预检模型列表：{kind, base_url, api_key}"""
+        """未保存的服务商预检模型列表：{kind, base_url, api_key, provider_id?}"""
         from .providers import build_provider
+        w: World = app.state.world
         kind = body.get("kind", "openai_compatible")
         base_url = (body.get("base_url") or "").strip()
         api_key = body.get("api_key") or ""
+        provider_id = body.get("provider_id")
+        # 编辑现有服务商且密钥留空时，用已保存的密钥
+        if not api_key and provider_id:
+            saved = w.providers.build(provider_id)
+            if saved is not None:
+                api_key = saved.resolve_key() or ""
+                if not base_url:
+                    base_url = saved.base_url
+                if not kind or kind == "openai_compatible":
+                    kind = saved.kind
         if not base_url:
             raise HTTPException(422, "base_url required")
         try:
