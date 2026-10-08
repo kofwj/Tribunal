@@ -224,7 +224,7 @@ function DetectorPanel({ detectors, selected, onToggle }:
           return (
             <label key={d.id}
               className={`det-opt${on ? " on" : ""}${d.available ? "" : " off"}`}
-              title={d.available ? detectorDesc(d.id, d.description) : d.reason}>
+              data-tip={d.available ? detectorDesc(d.id, d.description) : d.reason}>
               <input type="checkbox" checked={on} disabled={!d.available}
                 onChange={() => onToggle(d.id)} />
               <span className="det-opt-name">{detectorName(d.id, d.name)}</span>

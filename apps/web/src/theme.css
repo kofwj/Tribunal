@@ -283,3 +283,19 @@ a:hover { text-decoration: underline; }
   .tabs { margin-left: 12px; }
   .tab { padding: 6px 10px; }
 }
+
+/* custom tooltip (fast, styled) */
+.det-opt { position: relative; }
+.det-opt[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+  z-index: 20;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  font-size: 12px; line-height: 1.6; color: var(--text-dim);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  pointer-events: none;
+  white-space: normal;
+}
