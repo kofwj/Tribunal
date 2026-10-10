@@ -11,4 +11,4 @@ functional with zero ML dependencies (stylometry + calibration + BYOK LLM
 Judge) and unlocks the rest when `pip install aitextjury[ml]` is installed.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.1.0"

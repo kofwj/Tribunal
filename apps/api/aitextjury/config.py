@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-APP_NAME = "AITextJury"
+APP_NAME = "Tribunal"
 VERSION = "0.1.0"
 API_PORT = int(os.environ.get("AITEXTJURY_PORT", "8000"))
 
