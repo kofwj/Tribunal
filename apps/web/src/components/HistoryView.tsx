@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { deleteHistoryReport, fetchHistory, fetchHistoryReport } from "../api";
 import type { AnalyzeReport, HistoryEntry } from "../types";
 import { Heatmap } from "./Heatmap";
+import { TimelineView } from "./TimelineView";
 import { DetectorCard } from "./DetectorCard";
 import { Gauge } from "./Gauge";
 import { fmtPct, timeAgo, VERDICT_LABEL, verdictClass, detectorName } from "../util";
@@ -15,6 +16,7 @@ export function HistoryView({ onOpen }:
   const [report, setReport] = useState<AnalyzeReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [tab, setTab] = useState<"list" | "timeline">("list");
 
   const refresh = async () => {
     try {
@@ -53,11 +55,20 @@ export function HistoryView({ onOpen }:
   return (
     <div>
       <div className="panel">
-        <h3>检测历史</h3>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>检测历史</h3>
+          <button className={tab === "list" ? "primary" : "ghost"}
+                  style={{ padding: "4px 12px", fontSize: 13 }}
+                  onClick={() => setTab("list")}>列表</button>
+          <button className={tab === "timeline" ? "primary" : "ghost"}
+                  style={{ padding: "4px 12px", fontSize: 13 }}
+                  onClick={() => setTab("timeline")}>📈 版本对比</button>
+        </div>
         <p className="hint">
           记录存在本地 <code>data/history/</code>——不上传到任何地方。
           完整报告包含每个检测器的证据，随时可审计。
         </p>
+        {tab === "timeline" ? <TimelineView /> : (<>
         {err && <div style={{ color: "var(--warn)", fontSize: 12.5 }}>{err}</div>}
         <table className="flat">
           <thead>
@@ -105,6 +116,7 @@ export function HistoryView({ onOpen }:
             )}
           </tbody>
         </table>
+        </>)}
       </div>
 
       {/* ── 报告弹窗 ─────────────────────────────────────────── */}

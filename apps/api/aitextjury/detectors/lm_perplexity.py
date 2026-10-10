@@ -81,18 +81,24 @@ class LMPerplexityDetector(BaseDetector):
             raise DetectorError("text produced no tokens")
 
         token_values: list[float | None] = [None] * len(tt.input_ids)
+        token_ranks: list[int | None] = [None] * len(tt.input_ids)
         nll_sum = 0.0
         n_tok = 0
         for ch in chunks:
             if len(ch.token_ids) < 2:
                 continue
-            _, target_logp, _ = forward_stats(model, ch.token_ids)
+            logp_rows, target_logp, _ = forward_stats(model, ch.token_ids)
             vals = (-target_logp).tolist()          # (len-1,) nats
+            # rank[k] = 1 + #(vocab tokens with higher logp)  (GLTR-style)
+            import torch
+            ranks = (logp_rows > target_logp.unsqueeze(1)).sum(dim=1).add_(1)
+            rank_list = ranks.tolist()
             # vals[k] scores token at global position ch.token_pos[k+1]
             for k, v in enumerate(vals):
                 g = ch.token_pos[k + 1]
                 if token_values[g] is None:
                     token_values[g] = v
+                    token_ranks[g] = int(rank_list[k])
                 nll_sum += v
                 n_tok += 1
         if n_tok == 0:
@@ -102,11 +108,20 @@ class LMPerplexityDetector(BaseDetector):
         sent_agg = aggregate_to_sentences(tt, token_values)
         top_sents = sorted(sent_agg.items(), key=lambda kv: kv[1][0])[:5]
 
+        # GLTR: token 文本 + rank（每 token 在预测分布中的名次）
+        try:
+            tok = HUB.tokenizer(model_id)
+            all_toks = tok.convert_ids_to_tokens(tt.input_ids)
+        except Exception:
+            all_toks = [""] * len(tt.input_ids)
+        LIM = 2000
         signals = {
             "mean_token_nll": mean_nll,
             "perplexity": 2.718281828 ** mean_nll,   # e^NLL (nats)
             "tokens_scored": n_tok,
             "n_chunks": len(chunks),
+            "gltr_tokens": all_toks[:LIM],
+            "gltr_ranks": token_ranks[:LIM],
         }
         evidence = [
             EvidenceItem(

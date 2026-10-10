@@ -197,8 +197,8 @@ class BaseDetector(abc.ABC):
         verdict = None
         confidence = None
         thr = self.threshold(fit if fit else None) if fit else 0.5
-        # 阈值也要映射到校准后空间，否则分数（已校准）和阈值（原始）不可比
-        thr_calibrated = self._map_raw(thr, fit) if fit else thr
+        # calibration.metrics 已在校准后空间做 grid search，阈值直接可用，不再映射
+        thr_calibrated = thr
         seg_scores: list[SegmentScore] = []
         if not fit:
             thr = 0.5

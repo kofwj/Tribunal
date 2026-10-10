@@ -37,8 +37,8 @@ from .lm_common import (HUB, aggregate_to_sentences, build_chunks, \
 
 CHUNK_TOKENS = 512
 DEFAULT_K_SAMPLES = 6
-DEFAULT_MODEL = "gpt2"       # detection model (M)
-DEFAULT_REFERENCE = "gpt2"   # reference model (R)
+DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B"  # detection model (M)
+DEFAULT_REFERENCE = "Qwen/Qwen2.5-0.5B"  # reference model (R)
 
 
 class FastDetectGPTDetector(BaseDetector):

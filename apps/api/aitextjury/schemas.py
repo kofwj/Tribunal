@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 # A detector's `signals` bag holds its own statistics. Mostly numbers, but
 # metadata entries (which model scored, which provider answered...) are legal.
-SignalValue = Union[float, int, str, bool, None]
+SignalValue = Union[float, int, str, bool, None, list]
 
 
 class Verdict(str, Enum):

@@ -162,6 +162,50 @@ def build_app(world: World | None = None) -> FastAPI:
         w: World = app.state.world
         return {"entries": [e.model_dump() for e in w.history.list()]}
 
+    @app.get("/api/history/timeline")
+    def history_timeline():
+        """Group history entries by document (title prefix) for version
+        comparison. Returns groups with 2+ versions, each with per-detector
+        score curves over time."""
+        w: World = app.state.world
+        from collections import defaultdict
+        groups: dict = defaultdict(list)
+        for e in w.history.list():
+            d = e.model_dump()
+            key = (d.get("title") or "")[:12]
+            if key:
+                groups[key].append(d)
+        result = []
+        for key, entries in groups.items():
+            if len(entries) < 2:
+                continue
+            entries.sort(key=lambda x: x.get("created_at", ""))
+            versions = []
+            for en in entries:
+                rep = w.history.get(en["id"])
+                det_scores = {}
+                if rep:
+                    rd = rep.model_dump() if hasattr(rep, "model_dump") else rep
+                    for r in (rd.get("results") or []):
+                        if r.get("score") is not None:
+                            det_scores[r["detector_id"]] = round(r["score"], 3)
+                versions.append({
+                    "id": en["id"],
+                    "created_at": en.get("created_at"),
+                    "chars": (en.get("stats") or {}).get("chars"),
+                    "consensus_score": en.get("consensus_score"),
+                    "consensus_verdict": en.get("consensus_verdict"),
+                    "detectors": det_scores,
+                })
+            result.append({
+                "key": key,
+                "title": entries[-1].get("title", "")[:30],
+                "count": len(versions),
+                "versions": versions,
+            })
+        result.sort(key=lambda g: (-g["count"], g["versions"][-1]["created_at"]))
+        return {"groups": result}
+
     @app.get("/api/history/{rid}")
     def history_get(rid: str):
         w: World = app.state.world

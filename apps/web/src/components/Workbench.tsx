@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AnalyzeReport, DetectorInfo } from "../types";
 import { analyze, extractText, fetchDetectors } from "../api";
 import { Heatmap } from "./Heatmap";
+import { GltrView } from "./GltrView";
 import { DetectorCard } from "./DetectorCard";
 import { Gauge } from "./Gauge";
 import { fmtPct, detectorName, detectorDesc , VERDICT_LABEL} from "../util";
@@ -296,6 +297,7 @@ export function Workbench() {
       {report && (
         <div style={{ marginTop: 16 }}>
           <Heatmap report={report} />
+          <GltrView report={report} />
         </div>
       )}
 

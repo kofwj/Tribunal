@@ -63,7 +63,7 @@ export default function App() {
         textAlign: "center", padding: "16px", fontSize: 11.5,
         color: "var(--text-faint)", borderTop: "1px solid var(--border-soft)",
       }}>
-        三堂会审 Tribunal v1.1.0 ·{" "}
+        三堂会审 Tribunal v1.2.0 ·{" "}
         <a href="https://github.com/kofwj/Tribunal" target="_blank" rel="noreferrer"
           style={{ color: "var(--text-faint)", textDecoration: "underline" }}>
           GitHub
