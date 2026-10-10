@@ -76,6 +76,11 @@ class LMPerplexityDetector(BaseDetector):
 
         tt = tokenize_for_heatmap(model_id, ctx.text,
                                   ctx.segmentation.sentences, CHUNK_TOKENS)
+        # 长文限流：只取前 1024 个 token（J4125 上全量跑不完 90s 超时）
+        MAX_TOKENS = 1024
+        if len(tt.input_ids) > MAX_TOKENS:
+            tt.input_ids = tt.input_ids[:MAX_TOKENS]
+            tt.offsets = tt.offsets[:MAX_TOKENS]
         chunks = build_chunks(tt, overlap=OVERLAP)
         if not chunks:
             raise DetectorError("text produced no tokens")
