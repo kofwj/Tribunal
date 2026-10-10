@@ -32,7 +32,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -254,6 +254,36 @@ def build_app(world: World | None = None) -> FastAPI:
             return {"models": models}
         except Exception as e:
             raise HTTPException(502, f"拉取失败: {e}")
+
+    @app.post("/api/extract")
+    async def extract_text(file: UploadFile = File(...)):
+        """从上传的文档提取文本：.txt .md .pdf .docx"""
+        name = (file.filename or "").lower()
+        data = await file.read()
+        if len(data) > 20 * 1024 * 1024:
+            raise HTTPException(413, "文件太大（限 20MB）")
+        text = ""
+        try:
+            if name.endswith(".pdf"):
+                from pypdf import PdfReader
+                import io
+                reader = PdfReader(io.BytesIO(data))
+                text = "\n".join([(p.extract_text() or "") for p in reader.pages])
+            elif name.endswith(".docx"):
+                import docx, io
+                doc = docx.Document(io.BytesIO(data))
+                text = "\n".join([p.text for p in doc.paragraphs])
+            elif name.endswith((".txt", ".md", ".markdown")):
+                text = data.decode("utf-8", errors="ignore")
+            else:
+                # 尝试按文本解码
+                text = data.decode("utf-8", errors="ignore")
+        except Exception as e:
+            raise HTTPException(422, f"解析失败: {e}")
+        text = text.strip()
+        if not text:
+            raise HTTPException(422, "未提取到文本")
+        return {"filename": file.filename, "chars": len(text), "text": text}
 
     # ------------------------------------------------------------- settings
 

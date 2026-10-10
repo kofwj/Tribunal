@@ -72,6 +72,8 @@ class LLMJudgeDetector(BaseDetector):
     requires: list[str] = []
     default_enabled = False
     heavy = False
+    robustness = "medium"
+    robustness_note = "中等：LLM 裁判有一定辨别力"
     DEFAULT_BANDS = (0.5, 0.18)   # the raw is already a probability
 
     def raw_direction(self) -> str:

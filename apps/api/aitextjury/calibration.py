@@ -201,7 +201,8 @@ class CalibrationStore:
 
 
 async def calibrate_detector(detector, corpus: Corpus, *,
-                             max_chars: int = 4000) -> dict:
+                             max_chars: int = 4000,
+                             detector_settings: dict | None = None) -> dict:
     """Run one detector over a corpus, fit + metrics, store, return summary."""
     import asyncio
 
@@ -214,7 +215,7 @@ async def calibrate_detector(detector, corpus: Corpus, *,
     errors: list[str] = []
     # Calibration uses a minimal context: providers only needed by llm_judge
     providers = ProviderManager()
-    det_settings = {}
+    det_settings = detector_settings or {}
 
     class _Fits:
         def get(self, _):

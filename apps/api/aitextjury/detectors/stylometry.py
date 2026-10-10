@@ -54,6 +54,8 @@ class StylometryDetector(BaseDetector):
     requires: list[str] = []
     default_enabled = True
     heavy = False
+    robustness = "high"
+    robustness_note = "抗改写：深层写作习惯难被表面改写绕过"
     DEFAULT_BANDS = (0.50, 0.20)
 
     def raw_direction(self) -> str:

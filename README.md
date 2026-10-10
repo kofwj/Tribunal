@@ -1,4 +1,4 @@
-<h1 align="center">AITextJury</h1>
+<h1 align="center">Tribunal</h1>
 
 <p align="center">
   <strong>A jury of AI-text detectors. You are the judge.</strong>
@@ -18,9 +18,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/stars/kofwj/aitextjury-zh?style=flat-square&color=ffd33d&logo=github" alt="Stars" />
-  <img src="https://img.shields.io/github/forks/kofwj/aitextjury-zh?style=flat-square&color=8957e5&logo=github" alt="Forks" />
-  <img src="https://img.shields.io/github/last-commit/kofwj/aitextjury-zh?style=flat-square&color=3fb950&logo=github" alt="Last commit" />
+  <img src="https://img.shields.io/github/stars/kofwj/Tribunal?style=flat-square&color=ffd33d&logo=github" alt="Stars" />
+  <img src="https://img.shields.io/github/forks/kofwj/Tribunal?style=flat-square&color=8957e5&logo=github" alt="Forks" />
+  <img src="https://img.shields.io/github/last-commit/kofwj/Tribunal?style=flat-square&color=3fb950&logo=github" alt="Last commit" />
 </p>
 
 <p align="center">
@@ -58,7 +58,7 @@ plug it in, and compare methods openly.
 ## Quickstart
 
 ```bash
-git clone https://github.com/kofwj/aitextjury-zh.git
+git clone https://github.com/kofwj/Tribunal.git
 cd aitextjury-zh
 docker compose up
 # → http://localhost:8000

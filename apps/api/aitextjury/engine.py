@@ -106,6 +106,8 @@ class Engine:
                 "hints": av.hints,
                 "uncalibrated": self.calibration.get(det.id) is None,
                 "bands_help": det.bands_help(),
+                "robustness": getattr(det, "robustness", "medium"),
+                "robustness_note": getattr(det, "robustness_note", ""),
             }
             out.append(base)
         return out

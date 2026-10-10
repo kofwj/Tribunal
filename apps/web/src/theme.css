@@ -316,7 +316,7 @@ a:hover { text-decoration: underline; }
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 14px 16px;
+  padding: 10px 12px;
   position: relative;
   overflow: hidden;
 }
@@ -340,7 +340,7 @@ a:hover { text-decoration: underline; }
 .verdict-tag.human { background: rgba(34,197,94,.14); color: var(--ok); }
 .verdict-tag.mixed { background: rgba(245,158,11,.14); color: var(--warn); }
 .det-card-v3 .score-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-.det-card-v3 .score-big { font-size: 30px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+.det-card-v3 .score-big { font-size: 24px; font-weight: 700; font-family: var(--mono); line-height: 1; }
 .score-big.ai { color: var(--bad); }
 .score-big.human { color: var(--ok); }
 .score-big.mixed { color: var(--warn); }
@@ -353,4 +353,4 @@ a:hover { text-decoration: underline; }
 .det-card-v3 .evidence { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
 .det-card-v3 .evidence .k { color: var(--text-faint); }
 .det-card-v3 .timing { font-size: 11px; color: var(--text-faint); font-family: var(--mono); margin-top: 8px; }
-.det-results-v3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.det-results-v3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }

@@ -87,6 +87,29 @@ export function DocsView() {
               自带 Key 的调用只发往你配置的服务商。</li>
         </ul>
       </div>
+
+      <div className="panel">
+        <h3>抗改写实测（2026-10-09）</h3>
+        <p style={{ color: "var(--text-dim)", lineHeight: 1.8 }}>
+          用 Humanizer-zh 规则改写一段高 AI 味网文，测各检测器分数变化：
+        </p>
+        <table className="flat">
+          <thead><tr><th>检测器</th><th>改写前</th><th>改写后</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td><b>HF 分类器</b></td><td>0.997</td><td>0.465</td>
+              <td style={{ color: "var(--danger)" }}>易被绕过——换说法、去套话就能腰斩</td></tr>
+            <tr><td><b>文体指纹</b></td><td>0.596</td><td>0.603</td>
+              <td style={{ color: "var(--success)" }}>抗改写强——看深层习惯，表面改写洗不掉</td></tr>
+            <tr><td><b>综合</b></td><td>0.796</td><td>0.534</td>
+              <td>likely_ai → uncertain</td></tr>
+          </tbody>
+        </table>
+        <ul style={{ color: "var(--text-dim)", lineHeight: 1.8, marginTop: 10 }}>
+          <li>不要只看一个检测器：HF 分数高不代表实锤，看文体指纹是否也高。</li>
+          <li>改写只能洗掉表面分：如果文体指纹也判高，得从句式节奏上重写，换词没用。</li>
+          <li>短文本（80 词以下）任何检测器的结论都要打折。</li>
+        </ul>
+      </div>
     </div>
   );
 }

@@ -61,7 +61,9 @@ class BinocularsDetector(BaseDetector):
     link = "https://arxiv.org/abs/2401.12070"
     requires = ["torch", "transformers"]
     default_enabled = False
-    heavy = True
+    heavy = True 
+    robustness = "low"
+    robustness_note = "易被改写绕过：统计方法对 paraphrase 敏感"
     DEFAULT_BANDS = (4.5, 2.2)   # rough gpt2-pair guess; run calibration!
 
     def raw_direction(self) -> str:

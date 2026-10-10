@@ -54,7 +54,9 @@ class FastDetectGPTDetector(BaseDetector):
     link = "https://arxiv.org/abs/2310.05130"
     requires = ["torch", "transformers"]
     default_enabled = False
-    heavy = True
+    heavy = True 
+    robustness = "low"
+    robustness_note = "易被改写绕过：统计方法对 paraphrase 敏感"
     DEFAULT_BANDS = (0.9, 0.7)   # raw curvature; higher -> AI
 
     def raw_direction(self) -> str:

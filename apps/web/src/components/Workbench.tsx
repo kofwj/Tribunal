@@ -110,11 +110,30 @@ export function Workbench() {
     }
     lines.push("");
     lines.push("注：AI 检测只能作为概率信号，不能证明作者身份。");
+    const text = lines.join("\n");
+    let ok = false;
     try {
-      await navigator.clipboard.writeText(lines.join("\n"));
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch {
+      // 非安全上下文 fallback：textarea + execCommand
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch { /* ignore */ }
+    }
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch { /* clipboard 可能不可用 */ }
+    } else {
+      alert("复制失败：浏览器拦截了剪贴板，请用 HTTPS 访问或手动复制。");
+    }
   };
 
   const onFile = async (f: File | undefined) => {

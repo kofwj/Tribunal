@@ -27,14 +27,28 @@ export function DetectorCard({ result }: { result: DetectorResult }) {
     .filter(([, v]) => v != null && v !== "")
     .slice(0, 3);
 
-  const copyOne = () => {
+  const copyOne = async () => {
     const lines = [
       `${detectorName(result.detector_id, result.name)} — ${score.toFixed(2)}（${label}）`,
       `阈值 ${result.threshold.toFixed(2)} · ${result.calibration.status === "calibrated" ? `已校准（AUC ${result.calibration.auc?.toFixed(2) ?? "—"}）` : "未校准"} · ${result.runtime_ms} ms`,
     ];
     if (result.model) lines.push(`模型：${result.model}`);
     for (const [k, v] of signals) lines.push(`${k}：${typeof v === "number" ? v.toFixed(3) : String(v)}`);
-    navigator.clipboard.writeText(lines.join("\n")).catch(() => {});
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch { /* ignore */ }
+    }
   };
 
   return (

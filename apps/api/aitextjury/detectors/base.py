@@ -117,6 +117,10 @@ class BaseDetector(abc.ABC):
     requires: list[str] = []           # pip packages (informational)
     default_enabled: bool = True
     heavy: bool = False                # slower / downloads models
+    # 抗改写强度: high=难被改写绕过, medium=中等, low=容易被改写绕过
+    # 基于 2026-10-09 Humanizer-zh 对抗实验测定
+    robustness: str = "medium"
+    robustness_note: str = "" 
 
     # Default normalization bands used until a calibration fit exists.
     #   mid: raw value separating human|AI
@@ -173,13 +177,16 @@ class BaseDetector(abc.ABC):
             store = ctx.calibration.get(self.id)
             if store:
                 fit = store
-                m = store.get("metrics", {})
+                # 兼容两种格式：metrics嵌套 或 顶层平铺
+                m = store.get("metrics", {}) or {}
+                def _g(k):
+                    return m.get(k) if m.get(k) is not None else store.get(k)
                 calib_info = CalibrationInfo(
                     status="calibrated",
                     dataset=store.get("dataset", ""),
                     n_samples=store.get("n", 0),
-                    auc=m.get("auc"), ece=m.get("ece"),
-                    brier=m.get("brier"), accuracy=m.get("acc"),
+                    auc=_g("auc"), ece=_g("ece"),
+                    brier=_g("brier"), accuracy=_g("acc"),
                     threshold=store.get("threshold", 0.5),
                     fitted_at=store.get("when"),
                 )
@@ -190,19 +197,21 @@ class BaseDetector(abc.ABC):
         verdict = None
         confidence = None
         thr = self.threshold(fit if fit else None) if fit else 0.5
+        # 阈值也要映射到校准后空间，否则分数（已校准）和阈值（原始）不可比
+        thr_calibrated = self._map_raw(thr, fit) if fit else thr
         seg_scores: list[SegmentScore] = []
         if not fit:
             thr = 0.5
 
         if outcome is not None and outcome.raw_score is not None:
             score = self._map_raw(outcome.raw_score, fit)
-            if score >= thr + 0.05:
+            if score >= thr_calibrated + 0.05:
                 verdict = Verdict.likely_ai
-            elif score <= thr - 0.05:
+            elif score <= thr_calibrated - 0.05:
                 verdict = Verdict.likely_human
             else:
                 verdict = Verdict.uncertain
-            confidence = min(1.0, 0.5 + 1.6 * abs(score - thr))
+            confidence = min(1.0, 0.5 + 1.6 * abs(score - thr_calibrated))
 
             seg_by_id = {s.id: s for s in segmentation.all()}
             for raw_seg in outcome.segment_scores:
@@ -228,7 +237,7 @@ class BaseDetector(abc.ABC):
             raw_direction=self.raw_direction(),
             verdict=verdict,
             confidence=confidence,
-            threshold=thr,
+            threshold=thr_calibrated,
             signals=outcome.signals if outcome else {},
             segment_scores=seg_scores,
             evidence=outcome.evidence if outcome else [],

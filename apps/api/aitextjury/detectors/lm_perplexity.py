@@ -43,6 +43,8 @@ class LMPerplexityDetector(BaseDetector):
     requires = ["torch", "transformers"]
     default_enabled = False
     heavy = True
+    robustness = "medium"
+    robustness_note = "中等：困惑度随改写变化，但幅度有限"
     DEFAULT_BANDS = (3.0, 1.2)   # mid nats; lower -> AI (lower_is_ai)
 
     def raw_direction(self) -> str:

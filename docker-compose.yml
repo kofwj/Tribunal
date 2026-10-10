@@ -31,7 +31,8 @@ services:
     volumes:
       - aitextjury_data:/data
       # host source overlay: code fixes on the host apply after restart
-      - ./apps/api/aitextjury:/app/aitextjury:ro
+      - /root/aitextjury/apps/api/aitextjury:/app/aitextjury:ro
+      - /root/aitextjury/apps/web/dist:/app/aitextjury/static:ro
     restart: unless-stopped
     command: ["python", "-c", "from aitextjury.main import run; run(host='0.0.0.0')"]
 

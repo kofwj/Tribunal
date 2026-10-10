@@ -64,7 +64,7 @@ export default function App() {
         color: "var(--text-faint)", borderTop: "1px solid var(--border-soft)",
       }}>
         三堂会审 Tribunal v1.0.0 ·{" "}
-        <a href="https://github.com/kofwj/aitextjury-zh" target="_blank" rel="noreferrer"
+        <a href="https://github.com/kofwj/Tribunal" target="_blank" rel="noreferrer"
           style={{ color: "var(--text-faint)", textDecoration: "underline" }}>
           GitHub
         </a>{" "}
