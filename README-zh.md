@@ -108,7 +108,7 @@ scripts\dev.ps1           # 工作台 http://localhost:5173，API :8000
 | **困惑度检测** | 本地语言模型 | torch+transformers | 小因果语言模型下的平均 token 困惑度 |
 | **快速检测** | 本地语言模型 | torch+transformers | 条件概率曲率（[Bao et al., ICLR'24](https://arxiv.org/abs/2310.05130)） |
 | **双筒望远镜** | 本地双模型 | torch+transformers | 跨模型一致性（[Hans et al. 2024](https://arxiv.org/abs/2401.12070)） |
-| **HF 分类器** | 自选模型 | torch+transformers | 任意 HuggingFace 文本分类模型，中文推荐 `yuchuantian/AIGC_detector_zhv3` |
+| **HF 分类器** | 自选模型 | torch+transformers / OpenVINO | 任意 HuggingFace 文本分类模型，中文推荐 `yuchuantian/AIGC_detector_zhv3`（已转 OpenVINO IR，CPU 推理快 5.6x） |
 | **LLM 裁判** | 自带 Key | provider key 或本地 Ollama | 让你的 LLM 用严格 JSON 协议当裁判 |
 | **插件** | 社区 | 任意 | 如自带的 `length_rhythm` 示例 |
 
@@ -127,6 +127,10 @@ scripts\dev.ps1           # 工作台 http://localhost:5173，API :8000
 * 历史记录点开后自动滚动到报告位置
 * 修复上游 `availability(ctx=None)` bug（检测器列表、校准接口、校准上下文三处）
 * HF 分类器批量推理 + 进程内缓存（177 句从 89 秒降到热机后 0.7 秒/6 句）
+* HF 分类器 OpenVINO 后端：转 IR 后 100 句从 23 秒降到 4.1 秒（5.6x），输出无漂移
+* 长文 100 句均匀采样限流（防 CPU 超时）
+* 校准修复：阈值映射到校准后空间、准确率显示、文体指纹重校准（AUC 0.99）
+* 抗改写徽章 + 脆弱性提示（Humanizer-zh 实测：HF 分类器易被绕过，文体指纹抗改写强）
 * Dockerfile 默认 CPU 版 torch，支持 `HF_ENDPOINT` 镜像源
 * 中文推荐模型：`yuchuantian/AIGC_detector_zhv3`（ICLR'24 MPU 方法）
 
