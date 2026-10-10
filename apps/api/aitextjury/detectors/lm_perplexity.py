@@ -90,15 +90,18 @@ class LMPerplexityDetector(BaseDetector):
             logp_rows, target_logp, _ = forward_stats(model, ch.token_ids)
             vals = (-target_logp).tolist()          # (len-1,) nats
             # rank[k] = 1 + #(vocab tokens with higher logp)  (GLTR-style)
+            # 只算前 800 个 token 的 rank，长文全量算太慢（V=150k）
             import torch
-            ranks = (logp_rows > target_logp.unsqueeze(1)).sum(dim=1).add_(1)
-            rank_list = ranks.tolist()
+            rank_list = [None] * len(vals)
+            if ch.token_pos[1] < 800:
+                ranks = (logp_rows > target_logp.unsqueeze(1)).sum(dim=1).add_(1)
+                rank_list = ranks.tolist()
             # vals[k] scores token at global position ch.token_pos[k+1]
             for k, v in enumerate(vals):
                 g = ch.token_pos[k + 1]
                 if token_values[g] is None:
                     token_values[g] = v
-                    token_ranks[g] = int(rank_list[k])
+                    token_ranks[g] = int(rank_list[k]) if rank_list[k] is not None else None
                 nll_sum += v
                 n_tok += 1
         if n_tok == 0:
